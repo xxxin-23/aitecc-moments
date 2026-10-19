@@ -180,6 +180,26 @@ aitecc-moments/
 
 ---
 
+## 🛠 推送方式
+
+常规方式当然是：
+
+```bash
+git add -A && git commit -m "..." && git push
+```
+
+**但如果你也遇到 `git push` 连不上**（代理报 `CONNECT tunnel failed`、或 `Failed to connect to github.com:443`），
+可以用仓库里自带的 `push_repo.py` —— 它走 GitHub REST API 提交，绕开 git 的网络层：
+
+```bash
+python push_repo.py   # 把本地 git 已跟踪的文件整体推到 main
+```
+
+它会保留远端已有但本地没有的文件（比如 LICENSE），不会把别人的东西冲掉。
+个人访问令牌放在 `~/.github_pat.txt`，脚本内部读取，不经过命令行。
+
+---
+
 ## ℹ️ 关于仓库归属
 
 本项目目前托管在个人账号 `xxxin-23/aitecc-moments`。
