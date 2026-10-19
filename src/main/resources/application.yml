@@ -1,5 +1,7 @@
 server:
   port: 8080
+  # 监听所有网卡，允许同一局域网（校园网/宿舍 WiFi）内的同学通过 http://<本机IP>:8080 访问
+  address: 0.0.0.0
   forward-headers-strategy: framework
 
 spring:
