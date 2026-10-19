@@ -1,0 +1,17 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# 运行时数据：本地数据库与上传的图片都不该进仓库
+data/
+uploads/
+run.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# 日志
+*.log

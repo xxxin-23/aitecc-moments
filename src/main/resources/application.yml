@@ -1,0 +1,45 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: aitecc-moments
+  datasource:
+    url: jdbc:h2:file:./data/moments;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 100MB
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+springdoc:
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.aitecc.moments: INFO
+    org.hibernate.SQL: WARN
+
+moments:
+  # 上传图片存放目录（相对路径基于运行目录），建议部署时改成绝对路径并做定期备份
+  upload-dir: ./uploads/
+  # 单条动态最多几张图
+  max-images-per-post: 9
+  #  DEMO 模式：true 时允许不登录也能浏览（发布/评论/点赞仍需登录）
+  allow-anonymous-read: true

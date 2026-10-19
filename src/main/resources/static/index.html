@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>民大朋友圈 · AITECC Moments</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🍃</span>
+        <div class="brand-text">
+          <strong>民大朋友圈</strong>
+          <small>AITECC · 分享好吃好玩</small>
+        </div>
+      </div>
+      <div class="me" id="me"></div>
+    </header>
+
+    <nav class="topics" id="topics"></nav>
+
+    <main id="feed" class="feed"></main>
+
+    <div id="loadMore" class="load-more hidden">
+      <button id="loadMoreBtn">加载更多</button>
+    </div>
+
+    <button class="fab" id="fab" title="发一条">＋</button>
+
+    <!-- 登录 / 注册 -->
+    <div class="modal hidden" id="authModal">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h3 id="authTitle">登录</h3>
+          <button class="icon-btn" data-close="authModal">✕</button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="login">登录</button>
+          <button class="tab" data-tab="register">注册</button>
+        </div>
+        <label class="field">
+          <span>昵称</span>
+          <input id="authNickname" maxlength="24" placeholder="2~24 个字符，社团里认得出你就行" />
+        </label>
+        <label class="field" id="avatarRow">
+          <span>头像 emoji</span>
+          <input id="authAvatar" maxlength="4" placeholder="🙂" />
+          <div class="emoji-pick" id="emojiPick"></div>
+        </label>
+        <label class="field">
+          <span>密码</span>
+          <input id="authPassword" type="password" maxlength="64" placeholder="至少 6 位" />
+        </label>
+        <p class="err" id="authError"></p>
+        <button class="primary" id="authSubmit">登录</button>
+      </div>
+    </div>
+
+    <!-- 发布动态 -->
+    <div class="modal hidden" id="composer">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h3>发一条</h3>
+          <button class="icon-btn" data-close="composer">✕</button>
+        </div>
+        <textarea
+          id="postContent"
+          maxlength="2000"
+          rows="4"
+          placeholder="今天吃到什么好吃的、发现哪里好玩？说两句…"
+        ></textarea>
+        <div class="grid" id="imgPreview"></div>
+        <div class="toolbar">
+          <button class="chip-btn" id="pickImg">🖼️ 图片</button>
+          <button class="chip-btn" id="pickLoc">📍 定位</button>
+          <select id="topicSel" class="chip-btn"></select>
+          <span class="grow"></span>
+          <span class="loc-hint" id="locHint"></span>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden />
+        <p class="err" id="postError"></p>
+        <button class="primary" id="postSubmit">发布</button>
+      </div>
+    </div>
+
+    <!-- 动态详情（评论） -->
+    <div class="modal hidden" id="detail">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h3>详情</h3>
+          <button class="icon-btn" data-close="detail">✕</button>
+        </div>
+        <div id="detailBody" class="detail-body"></div>
+        <div class="comment-bar">
+          <input id="commentInput" maxlength="500" placeholder="说点什么…" />
+          <button class="primary small" id="commentSend">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片放大 -->
+    <div class="lightbox hidden" id="lightbox">
+      <img id="lightboxImg" alt="" />
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
