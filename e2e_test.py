@@ -199,6 +199,83 @@ def main():
         is_img = s == 200 and isinstance(raw, (bytes, bytearray)) and raw[:8] == b"\x89PNG\r\n\x1a\n"
         check(f"上传的图片可访问 ({url})", is_img, f"got {s}")
 
+    print("\n=== 2.5 编辑自己发的动态 ===")
+    s, edited, _ = http(
+        "PATCH",
+        f"/api/posts/{post_id}",
+        json.dumps(
+            {
+                "content": "改一下：这家其实更好吃",
+                "topic": "探店",
+                "locationName": "西校区食堂三楼",
+                "latitude": 22.84,
+                "longitude": 108.33,
+            }
+        ).encode(),
+        json_headers(token_a),
+    )
+    check("作者可以编辑自己的动态", s == 200 and edited.get("content") == "改一下：这家其实更好吃",
+          f"got {s} {edited if s != 200 else ''}")
+    check("编辑后话题跟着变", edited.get("topic") == "探店", f"got {edited.get('topic')}")
+    check("编辑后定位跟着变", (edited.get("location") or {}).get("name") == "西校区食堂三楼")
+    check("编辑不动已有图片", len(edited.get("images", [])) == 3,
+          f"got {len(edited.get('images', []))}")
+
+    s, after, _ = http("GET", f"/api/posts/{post_id}")
+    check("编辑结果已落库", after.get("content") == "改一下：这家其实更好吃", f"got {after.get('content')}")
+
+    s, _, _ = http("PATCH", f"/api/posts/{post_id}",
+                   json.dumps({"content": "别人来改"}).encode(), json_headers(token_b))
+    check("改别人的动态被拒 403", s == 403, f"got {s}")
+
+    s, _, _ = http("PATCH", f"/api/posts/{post_id}",
+                   json.dumps({"content": "x" * 2001}).encode(), json_headers(token_a))
+    check("正文超过 2000 字被拒 400", s == 400, f"got {s}")
+
+    s, _, _ = http("PATCH", "/api/posts/999999",
+                   json.dumps({"content": "不存在"}).encode(), json_headers(token_a))
+    check("编辑不存在的动态 404", s == 404, f"got {s}")
+
+    s, _, _ = http(
+        "PATCH", f"/api/posts/{post_id}",
+        json.dumps({"content": "没登录也想改"}).encode(),
+        {"Content-Type": "application/json"},
+    )
+    check("没有登录令牌编辑被拒 401", s == 401, f"got {s}")
+
+    s, _, _ = http("PATCH", f"/api/posts/{post_id}", b"", json_headers(token_a))
+    check("空请求体编辑被拒 400（不允许误清空）", s == 400, f"got {s}")
+
+    # B 发一条纯文字动态，验证「清空正文且无图」时会被拒（A 那条有图，清空是合法的）
+    boundary2, body2 = multipart({"content": "临时占位"}, [])
+    s, plain, _ = http(
+        "POST", "/api/posts", body2,
+        {"Content-Type": f"multipart/form-data; boundary={boundary2}", "X-Auth-Token": token_b},
+    )
+    if s == 200 and plain.get("id"):
+        s, _, _ = http("PATCH", f"/api/posts/{plain['id']}",
+                       json.dumps({"content": "   "}).encode(), json_headers(token_b))
+        check("清空正文且无图时编辑被拒 400", s == 400, f"got {s}")
+        http("DELETE", f"/api/posts/{plain['id']}", headers={"X-Auth-Token": token_b})
+    else:
+        check("清空正文且无图时编辑被拒 400", False, f"准备数据失败 {s}")
+
+    # 改回原样，别影响后面的用例
+    http(
+        "PATCH",
+        f"/api/posts/{post_id}",
+        json.dumps(
+            {
+                "content": "东校区后街新开的螺蛳粉，汤头很足 🍜 #好吃到跺脚",
+                "topic": "美食",
+                "locationName": "广西民族大学东校区后街",
+                "latitude": 22.7936,
+                "longitude": 108.3651,
+            }
+        ).encode(),
+        json_headers(token_a),
+    )
+
     print("\n=== 3. 信息流与详情 ===")
     s, feed, _ = http("GET", "/api/posts?size=20", headers={"X-Auth-Token": token_a})
     check("拉取信息流", s == 200 and isinstance(feed.get("items"), list), f"got {s}")

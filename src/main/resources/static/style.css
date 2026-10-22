@@ -153,13 +153,25 @@ body {
   color: var(--muted);
   font-size: 12px;
 }
-.post-head .del {
+.post-head .head-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.post-head .head-actions button {
   border: 0;
   background: none;
   color: var(--muted);
   cursor: pointer;
   font-size: 13px;
+  padding: 0;
+}
+.post-head .head-actions button:hover {
+  color: var(--text);
+}
+.post-head .head-actions .del:hover {
+  color: #e5484d;
 }
 .content {
   margin: 10px 0 0;

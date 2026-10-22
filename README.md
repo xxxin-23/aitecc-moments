@@ -12,6 +12,7 @@
 | 功能 | 说明 |
 |------|------|
 | **图文动态** | 一条动态最多 2000 字 + 9 张图，自动排成朋友圈 / 小红书的九宫格样式 |
+| **编辑动态** | 自己发的可以随时改文字 / 话题 / 定位（图片不动，要换图就删了重发） |
 | **定位打卡** | 浏览器自动取经纬度 + 手写地点名；点👇位置直接跳高德地图看在哪 |
 | **话题分类** | 美食 / 探店 / 学习 / 运动 / 风景 / 吐槽 / 数码 / 其他，顶部横向标签过滤 |
 | **评论** | 详情页评论列表，作者可以删自己的评论 |
@@ -71,6 +72,22 @@ http://192.168.3.36:8080
 
 > ⚠️ 局域网 HTTP 下浏览器的「自动定位」会失败（浏览器只在 https / localhost 下给定位权限），
 > 此时会降级成**手填地名**，不影响使用。要完整的定位打卡体验请配 HTTPS。
+
+### 🔑 仓库权限：科技社成员可查看 + 可编辑
+
+组织 `GXMZU-AITECC` 的**全体成员都已被加为仓库协作者（write）**，也就是：
+
+| 身份 | 查看 | 提 Issue / 发帖 | 推代码、处理 PR |
+|------|:--:|:--:|:--:|
+| 科技社成员（组织内） | ✅ | ✅ | ✅ |
+| 其他 GitHub 用户 | ✅ | ✅ | ❌（可 fork 后提 PR） |
+
+仓库是 **public** —— 内容对外可见，但**只有组织成员能直接改**。
+改代码前请看 [CONTRIBUTING.md](CONTRIBUTING.md)（先开 Issue 认领，再 `feature/xxx` 分支 → PR → review）。
+
+> 仓库设置、协作者管理、删库这类操作只有 owner（`xxxin-23`）能做，请别动。
+> 想长期挂社团名下，需要组织管理员（`xwms` / `isryanyhliu` / `kelly-624` / `LCY261`）
+> 在 Settings → Transfer ownership 接收 —— 个人账号无法自己完成转移。
 
 ### 🧪 自测脚本 & 演示数据
 
@@ -185,6 +202,7 @@ aitecc-moments/
 | GET | `/api/posts/topics` | 话题列表 | — |
 | GET | `/api/posts/{id}` | 单条详情 | 可选 |
 | POST | `/api/posts` | 发布（multipart：`content` `topic` `locationName` `latitude` `longitude` `images[]`） | ✅ |
+| PATCH | `/api/posts/{id}` | 编辑自己的动态（JSON：`content` `topic` `locationName` `latitude` `longitude`），只改文字/话题/定位 | ✅ |
 | DELETE | `/api/posts/{id}` | 删自己的动态 | ✅ |
 | GET | `/api/posts/{id}/comments` | 评论列表 | 可选 |
 | POST | `/api/posts/{id}/comments` | 评论 `{content}` | ✅ |

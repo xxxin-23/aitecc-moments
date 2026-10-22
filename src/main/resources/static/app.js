@@ -14,6 +14,7 @@ const state = {
   topic: '',
   draft: { images: [], lat: null, lng: null, locName: '' },
   openPostId: null,
+  editingId: null, // 非空表示正在编辑某条动态
 };
 
 /* ---------------- 基础工具 ---------------- */
@@ -173,7 +174,14 @@ function postCard(p) {
         <strong>${esc(p.author.nickname)}</strong>
         <div class="when">${relTime(p.createdAt)}</div>
       </div>
-      ${p.mine ? '<button class="del" data-del="' + p.id + '">删除</button>' : ''}
+      ${
+        p.mine
+          ? `<div class="head-actions">
+        <button data-edit="${p.id}">编辑</button>
+        <button class="del" data-del="${p.id}">删除</button>
+      </div>`
+          : ''
+      }
     </div>
     ${p.content ? `<p class="content">${esc(p.content)}</p>` : ''}
     ${imageGrid(p)}
@@ -210,6 +218,11 @@ $('#feed').addEventListener('click', async (e) => {
     state.posts = state.posts.filter((p) => String(p.id) !== del.dataset.del);
     renderFeed();
     toast('已删除');
+    return;
+  }
+  const edit = e.target.closest('[data-edit]');
+  if (edit) {
+    openEditor(edit.dataset.edit);
     return;
   }
   const like = e.target.closest('[data-like]');
@@ -275,6 +288,12 @@ $('#detailBody').addEventListener('click', async (e) => {
     await api('/comments/' + cd.dataset.cdel, { method: 'DELETE' });
     openDetail(state.openPostId);
     toast('评论已删除');
+    return;
+  }
+  const edit = e.target.closest('[data-edit]');
+  if (edit) {
+    $('#detail').classList.add('hidden');
+    openEditor(edit.dataset.edit);
   }
 });
 
@@ -291,9 +310,47 @@ $('#commentSend').onclick = async () => {
 
 /* ---------------- 发布 ---------------- */
 
+/** 打开「发一条」面板（新建模式） */
+function openComposer() {
+  state.editingId = null;
+  $('#postContent').value = '';
+  $('#topicSel').value = '';
+  state.draft = { images: [], lat: null, lng: null, locName: '' };
+  renderDraftImages();
+  $('#locHint').textContent = '';
+  $('#postError').textContent = '';
+  $('#composerTitle').textContent = '发一条';
+  $('#postSubmit').textContent = '发布';
+  $('#pickImg').classList.remove('hidden');
+  $('#composer').classList.remove('hidden');
+}
+
+/** 打开「编辑」面板：只改文字 / 话题 / 定位，图片不动 */
+async function openEditor(id) {
+  if (!needLogin()) return;
+  const post =
+    state.posts.find((p) => String(p.id) === String(id)) || (await api('/posts/' + id));
+  state.editingId = post.id;
+  $('#postContent').value = post.content || '';
+  $('#topicSel').value = post.topic || '';
+  state.draft = { images: [], lat: null, lng: null, locName: '' };
+  renderDraftImages();
+  const loc = post.location;
+  if (loc && (loc.name || loc.latitude != null)) {
+    setLocation(loc.name || '', loc.latitude, loc.longitude);
+  } else {
+    $('#locHint').textContent = '';
+  }
+  $('#postError').textContent = '';
+  $('#composerTitle').textContent = '编辑动态';
+  $('#postSubmit').textContent = '保存修改';
+  $('#pickImg').classList.add('hidden'); // 编辑不改图，避免误导
+  $('#composer').classList.remove('hidden');
+}
+
 $('#fab').onclick = () => {
   if (!needLogin()) return;
-  $('#composer').classList.remove('hidden');
+  openComposer();
 };
 
 $('#pickImg').onclick = () => $('#fileInput').click();
@@ -360,30 +417,46 @@ function setLocation(name, lat, lng) {
 
 $('#postSubmit').onclick = async () => {
   const content = $('#postContent').value.trim();
-  if (!content && !state.draft.images.length) {
+  if (!content && !state.draft.images.length && !state.editingId) {
     $('#postError').textContent = '写点什么，或者至少发张图';
     return;
   }
-  const fd = new FormData();
-  fd.append('content', content);
-  fd.append('topic', $('#topicSel').value || '');
-  fd.append('locationName', state.draft.locName || '');
-  if (state.draft.lat != null) fd.append('latitude', String(state.draft.lat));
-  if (state.draft.lng != null) fd.append('longitude', String(state.draft.lng));
-  state.draft.images.forEach((im) => fd.append('images', im.file));
-
+  const topic = $('#topicSel').value || '';
   const btn = $('#postSubmit');
   btn.disabled = true;
   try {
-    await api('/posts', { method: 'POST', body: fd });
+    if (state.editingId) {
+      // 编辑：只提交文字 / 话题 / 定位
+      await api('/posts/' + state.editingId, {
+        method: 'PATCH',
+        json: {
+          content,
+          topic,
+          locationName: state.draft.locName || '',
+          latitude: state.draft.lat,
+          longitude: state.draft.lng,
+        },
+      });
+      toast('已保存 ✏️');
+    } else {
+      const fd = new FormData();
+      fd.append('content', content);
+      fd.append('topic', topic);
+      fd.append('locationName', state.draft.locName || '');
+      if (state.draft.lat != null) fd.append('latitude', String(state.draft.lat));
+      if (state.draft.lng != null) fd.append('longitude', String(state.draft.lng));
+      state.draft.images.forEach((im) => fd.append('images', im.file));
+      await api('/posts', { method: 'POST', body: fd });
+      toast('发布成功 🎉');
+    }
     $('#postContent').value = '';
     state.draft = { images: [], lat: null, lng: null, locName: '' };
+    state.editingId = null;
     renderDraftImages();
     $('#locHint').textContent = '';
     $('#postError').textContent = '';
     $('#composer').classList.add('hidden');
     await loadPosts(true);
-    toast('发布成功 🎉');
   } catch (e) {
     $('#postError').textContent = e.message;
   } finally {
@@ -443,12 +516,23 @@ $('#authSubmit').onclick = async () => {
 
 /* ---------------- 通用交互 ---------------- */
 
-$$('[data-close]').forEach(
-  (b) => (b.onclick = () => $('#' + b.dataset.close).classList.add('hidden'))
-);
+/** 退出编辑态：编辑面板关掉后，下次点 ➕ 应该回到「发一条」 */
+function exitEditing() {
+  state.editingId = null;
+  $('#pickImg').classList.remove('hidden');
+}
+
+$$('[data-close]').forEach((b) => {
+  b.onclick = () => {
+    $('#' + b.dataset.close).classList.add('hidden');
+    if (b.dataset.close === 'composer') exitEditing();
+  };
+});
 $$('.modal').forEach((m) =>
   m.addEventListener('click', (e) => {
-    if (e.target === m) m.classList.add('hidden');
+    if (e.target !== m) return;
+    m.classList.add('hidden');
+    if (m.id === 'composer') exitEditing();
   })
 );
 

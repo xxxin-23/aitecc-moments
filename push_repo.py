@@ -36,18 +36,28 @@ OPENER = urllib.request.build_opener(
 
 
 def request(method, path, payload=None):
+    """带重试的请求 —— 本机网络偶发 SSL 握手超时，单次失败不代表真的失败。"""
+    import time
+
     token = open(r"C:\Users\x\.github_pat.txt", encoding="utf-8").read().strip()
-    data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(f"https://api.github.com{path}", data=data, method=method)
-    req.add_header("Authorization", "Bearer " + token)
-    req.add_header("User-Agent", "workbuddy")
-    req.add_header("Accept", "application/vnd.github+json")
-    try:
-        r = OPENER.open(req, timeout=60)
-        raw = r.read()
-        return r.status, (json.loads(raw) if raw else None)
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode("utf-8", "ignore")[:400]
+    last = None
+    for attempt in range(5):
+        data = json.dumps(payload).encode() if payload is not None else None
+        req = urllib.request.Request(f"https://api.github.com{path}", data=data, method=method)
+        req.add_header("Authorization", "Bearer " + token)
+        req.add_header("User-Agent", "workbuddy")
+        req.add_header("Accept", "application/vnd.github+json")
+        try:
+            r = OPENER.open(req, timeout=45)
+            raw = r.read()
+            return r.status, (json.loads(raw) if raw else None)
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode("utf-8", "ignore")[:400]
+        except Exception as e:  # noqa: BLE001 - SSL 握手超时等网络抖动
+            last = e
+            print(f"      .. 重试 {attempt + 1}/5（{type(e).__name__}）")
+            time.sleep(3 * (attempt + 1))
+    return 0, f"网络失败: {last}"
 
 
 def main():

@@ -71,5 +71,9 @@ public final class Feed {
 
     public record CommentRequest(String content) {}
 
+    /** 编辑动态的请求体：只改文字 / 话题 / 定位，图片不动。 */
+    public record PostEditRequest(
+            String content, String topic, String locationName, Double latitude, Double longitude) {}
+
     public record PageView<T>(List<T> items, int page, int size, boolean hasNext) {}
 }

@@ -113,6 +113,42 @@ public class PostService {
         return List.of("美食", "探店", "学习", "运动", "风景", "吐槽", "数码", "其他");
     }
 
+    /**
+     * 编辑自己发的动态。只动文字 / 话题 / 定位 —— 图片要换得先删重发，
+     * 这样服务端不用处理「新旧图片混合」的一堆边界。
+     */
+    public Feed.PostView update(
+            Long id,
+            User current,
+            String content,
+            String topic,
+            String locationName,
+            Double latitude,
+            Double longitude) {
+        Post post = posts.findById(id).orElseThrow(() -> BizException.notFound("动态不存在"));
+        if (!post.getAuthor().getId().equals(current.getId())) {
+            throw new BizException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "只能编辑自己发的动态");
+        }
+
+        String text = content == null ? "" : content.strip();
+        if (text.length() > 2000) {
+            throw new BizException("正文最多 2000 字");
+        }
+        if (text.isEmpty() && post.getImages().isEmpty()) {
+            throw new BizException("写点什么，或者至少留一张图");
+        }
+
+        post.setContent(text);
+        post.setTopic(normalizeTopic(topic));
+        post.setLocationName(locationName == null ? "" : locationName.strip());
+        post.setLatitude(latitude);
+        post.setLongitude(longitude);
+
+        Post saved = posts.save(post);
+        return toView(saved, current.getId());
+    }
+
     public void delete(Long id, User current) {
         Post post = posts.findById(id).orElseThrow(() -> BizException.notFound("动态不存在"));
         if (!post.getAuthor().getId().equals(current.getId())) {

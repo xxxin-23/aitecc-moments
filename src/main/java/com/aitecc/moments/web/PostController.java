@@ -8,8 +8,10 @@ import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -75,6 +77,24 @@ public class PostController {
             @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         User author = authService.require(token);
         return postService.create(author, content, topic, locationName, latitude, longitude, images);
+    }
+
+    /** 编辑自己发的动态：只改文字 / 话题 / 定位，图片不动。 */
+    @PatchMapping("/{id}")
+    public Feed.PostView update(
+            @PathVariable Long id,
+            @RequestHeader("X-Auth-Token") String token,
+            @RequestBody Feed.PostEditRequest req) {
+        User author = authService.require(token);
+        // 请求体必填：不带 body 的 PATCH 一律 400，避免误把正文清空
+        return postService.update(
+                id,
+                author,
+                req.content(),
+                req.topic(),
+                req.locationName(),
+                req.latitude(),
+                req.longitude());
     }
 
     @DeleteMapping("/{id}")
