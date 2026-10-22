@@ -16,6 +16,8 @@ const state = {
   draft: { images: [], lat: null, lng: null, locName: '' },
   openPostId: null,
   editingId: null, // 非空表示正在编辑某条动态
+  pendingNew: [], // 别人新发的、还没点开看的动态
+  commentSig: '', // 当前详情页评论的 id 串，变了才重绘
 };
 
 /** 三类「开关型」互动：图标、字段名、按钮文案都收在一处，加新动作只改这里 */
@@ -324,11 +326,22 @@ async function openDetail(id) {
     api('/posts/' + id + '/comments').catch(() => []),
   ]);
   state.openPostId = id;
+  state.commentSig = (comments || []).map((c) => c.id).join(',');
   $('#detailBody').innerHTML = `
     ${postCard(post)}
-    <div class="comments">${comments
-      .map(
-        (c) => `<div class="comment" data-cid="${c.id}">
+    <div id="commentBox">${commentsHtml(comments)}</div>`;
+  $('#detail').classList.remove('hidden');
+}
+
+/** 评论列表单独拆出来，实时刷新时只换这一块，输入框和滚动位置都不受影响 */
+function commentsHtml(comments) {
+  const cs = comments || [];
+  if (!cs.length) {
+    return '<p class="empty"><span class="big">💬</span>还没有评论，来说两句</p>';
+  }
+  return `<div class="comments">${cs
+    .map(
+      (c) => `<div class="comment" data-cid="${c.id}">
         <div class="avatar">${esc(c.author.avatar || '🙂')}</div>
         <div class="c-main">
           <div class="c-top">
@@ -339,10 +352,8 @@ async function openDetail(id) {
           <p class="c-text">${esc(c.content)}</p>
         </div>
       </div>`
-      )
-      .join('')}</div>
-    ${comments.length ? '' : '<p class="empty"><span class="big">💬</span>还没有评论，来说两句</p>'}`;
-  $('#detail').classList.remove('hidden');
+    )
+    .join('')}</div>`;
 }
 
 $('#detailBody').addEventListener('click', async (e) => {
@@ -726,6 +737,107 @@ $$('.feed-tab').forEach((b) => {
     switchTab(b.dataset.tab);
   };
 });
+
+/* ---------------- 实时更新 ----------------
+   多人同时在线时，别人发的新内容 / 新的点赞收藏评论，
+   靠定时轮询拉回来：新的先攒成提示条，点赞数直接就地更新。
+   页面在后台、或正在写东西 / 登录，都不打断。 */
+
+const POLL_FEED_MS = 15000;
+const POLL_COMMENT_MS = 8000;
+const COUNT_KEYS = ['likeCount', 'commentCount', 'favoriteCount', 'recommendCount'];
+
+function feedQuery(size) {
+  const qs = new URLSearchParams({ page: 0, size });
+  if (state.tab === 'favorites') return '/me/favorites?' + qs;
+  if (state.topic) qs.set('topic', state.topic);
+  qs.set('sort', state.tab === 'latest' ? 'latest' : 'recommend');
+  return '/posts?' + qs;
+}
+
+function busy() {
+  return (
+    document.hidden ||
+    !$('#composer').classList.contains('hidden') ||
+    !$('#authModal').classList.contains('hidden') ||
+    !$('#profileModal').classList.contains('hidden')
+  );
+}
+
+async function pollFeed() {
+  if (busy()) return;
+  try {
+    const data = await api(feedQuery(20));
+    const items = data.items || [];
+
+    // 1) 已经在列表里的：把点赞/评论/收藏/推荐的数同步成最新的
+    const byId = new Map(state.posts.map((p) => [String(p.id), p]));
+    let countsChanged = false;
+    items.forEach((it) => {
+      const old = byId.get(String(it.id));
+      if (!old) return;
+      COUNT_KEYS.forEach((k) => {
+        if (typeof it[k] === 'number' && it[k] !== old[k]) {
+          old[k] = it[k];
+          countsChanged = true;
+        }
+      });
+    });
+
+    // 2) 比列表里最大的 id 还大的，就是别人刚发的
+    const base = state.posts.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
+    const fresh = items.filter((it) => Number(it.id) > base);
+    if (fresh.length) {
+      const seen = new Set(state.pendingNew.map((p) => String(p.id)));
+      state.pendingNew = fresh.filter((p) => !seen.has(String(p.id))).concat(state.pendingNew);
+      $('#newTipCount').textContent = state.pendingNew.length;
+      $('#newTip').classList.remove('hidden');
+    }
+    if (countsChanged) renderFeed();
+  } catch (e) {
+    /* 轮询失败静默，不打扰 */
+  }
+}
+
+async function pollComments() {
+  if (document.hidden || !state.openPostId) return;
+  if ($('#detail').classList.contains('hidden')) return;
+  if ($('#commentInput').value.trim()) return; // 正在打字就先别刷
+  try {
+    const cs = await api('/posts/' + state.openPostId + '/comments');
+    const sig = (cs || []).map((c) => c.id).join(',');
+    if (sig === state.commentSig) return;
+    state.commentSig = sig;
+    const box = $('#commentBox');
+    if (box) box.innerHTML = commentsHtml(cs);
+  } catch (e) {
+    /* 静默 */
+  }
+}
+
+$('#newTip').onclick = () => {
+  const tip = $('#newTip');
+  tip.classList.add('hidden');
+  if (!state.pendingNew.length) return;
+  if (state.tab === 'latest') {
+    const known = new Set(state.posts.map((p) => String(p.id)));
+    state.posts = state.pendingNew.filter((p) => !known.has(String(p.id))).concat(state.posts);
+    state.pendingNew = [];
+    renderFeed();
+  } else {
+    state.pendingNew = [];
+    loadPosts(true);
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+/* 从后台切回来立刻拉一次最新的 */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) pollFeed();
+});
+
+setInterval(pollFeed, POLL_FEED_MS);
+setInterval(pollComments, POLL_COMMENT_MS);
 
 /* ---------------- 启动 ---------------- */
 
