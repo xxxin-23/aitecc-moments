@@ -1,4 +1,4 @@
-/* ===== 民大朋友圈 · AITECC Moments ===== */
+/* ===== 科技社陪着你走过青葱校园 ===== */
 'use strict';
 
 const API = '/api';
@@ -12,10 +12,20 @@ const state = {
   page: 0,
   hasNext: false,
   topic: '',
+  tab: 'recommend', // recommend | latest | favorites
   draft: { images: [], lat: null, lng: null, locName: '' },
   openPostId: null,
   editingId: null, // 非空表示正在编辑某条动态
 };
+
+/** 三类「开关型」互动：图标、字段名、按钮文案都收在一处，加新动作只改这里 */
+const ACTS = {
+  like: { on: 'liked', count: 'likeCount', icons: ['🤍', '❤️'], label: '赞', toast: ['已点赞 ❤️', '取消点赞'] },
+  favorite: { on: 'favorited', count: 'favoriteCount', icons: ['☆', '⭐'], label: '收藏', toast: ['已收藏 ⭐', '取消收藏'] },
+  recommend: { on: 'recommended', count: 'recommendCount', icons: ['👍', '🌟'], label: '推荐', toast: ['已推荐给同学 🌟', '取消推荐'] },
+};
+
+const EMOJIS = ['🐱', '🎀', '🌸', '🍓', '🧁', '🍰', '💗', '🦄', '🌷', '🐰', '🍡', '🙂'];
 
 /* ---------------- 基础工具 ---------------- */
 
@@ -34,7 +44,12 @@ async function api(path, opts = {}) {
     headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(opts.json);
   }
-  const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+  let res;
+  try {
+    res = await fetch(API + path, Object.assign({}, opts, { headers }));
+  } catch (e) {
+    throw new Error('连不上服务器，检查一下网络或者服务有没有开');
+  }
   const text = await res.text();
   let data = null;
   try {
@@ -63,7 +78,7 @@ function esc(s) {
 }
 
 function relTime(iso) {
-  const t = new Date(iso.replace(' ', 'T')).getTime();
+  const t = new Date(String(iso).replace(' ', 'T')).getTime();
   const diff = (Date.now() - t) / 1000;
   if (diff < 60) return '刚刚';
   if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
@@ -75,7 +90,7 @@ function relTime(iso) {
 
 function needLogin() {
   if (state.token) return true;
-  toast('先登录再操作哦');
+  toast('先登录再操作哦 🎀');
   openAuth('login');
   return false;
 }
@@ -102,8 +117,11 @@ function renderMe() {
   const box = $('#me');
   if (state.me) {
     box.innerHTML = `
-      <div class="avatar">${esc(state.me.avatar || '🙂')}</div>
+      <button class="avatar-btn" id="meAvatar" title="我的资料">
+        <div class="avatar">${esc(state.me.avatar || '🙂')}</div>
+      </button>
       <button class="btn-ghost" id="logoutBtn">退出</button>`;
+    $('#meAvatar').onclick = openProfile;
     $('#logoutBtn').onclick = async () => {
       try {
         await api('/auth/logout', { method: 'POST' });
@@ -114,7 +132,9 @@ function renderMe() {
       state.me = null;
       localStorage.removeItem('mm_token');
       renderMe();
-      toast('已退出');
+      if (state.tab === 'favorites') switchTab('recommend');
+      else loadPosts(true);
+      toast('已退出，下次见 👋');
     };
   } else {
     box.innerHTML = `<button class="btn-ghost" id="loginBtn">登录 / 注册</button>`;
@@ -130,12 +150,27 @@ async function loadPosts(reset) {
     state.posts = [];
   }
   const qs = new URLSearchParams({ page: state.page, size: 20 });
-  if (state.topic) qs.set('topic', state.topic);
-  const data = await api('/posts?' + qs);
-  state.posts = state.posts.concat(data.items);
-  state.hasNext = data.hasNext;
-  renderFeed();
-  $('#loadMore').classList.toggle('hidden', !state.hasNext);
+  let path;
+  if (state.tab === 'favorites') {
+    path = '/me/favorites?' + qs;
+  } else {
+    if (state.topic) qs.set('topic', state.topic);
+    qs.set('sort', state.tab === 'latest' ? 'latest' : 'recommend');
+    path = '/posts?' + qs;
+  }
+  try {
+    const data = await api(path);
+    state.posts = state.posts.concat(data.items);
+    state.hasNext = data.hasNext;
+    renderFeed();
+    $('#loadMore').classList.toggle('hidden', !state.hasNext);
+  } catch (e) {
+    if (state.tab === 'favorites' && e.status === 401) {
+      switchTab('recommend');
+      return;
+    }
+    $('#feed').innerHTML = `<div class="empty"><span class="big">🎀</span>加载失败：${esc(e.message)}</div>`;
+  }
 }
 
 function gridClass(n) {
@@ -166,6 +201,15 @@ function metaRow(post) {
   return bits.length ? `<div class="meta">${bits.join('')}</div>` : '';
 }
 
+function actButton(kind, p) {
+  const cfg = ACTS[kind];
+  const on = !!p[cfg.on];
+  const count = p[cfg.count] || 0;
+  return `<button class="act ${on ? 'on' : ''}" data-act="${kind}" data-id="${p.id}" title="${cfg.label}">
+    <span class="ico">${on ? cfg.icons[1] : cfg.icons[0]}</span><span class="cnt">${count || ''}</span>${cfg.label}
+  </button>`;
+}
+
 function postCard(p) {
   return `<article class="post" data-id="${p.id}">
     <div class="post-head">
@@ -187,10 +231,10 @@ function postCard(p) {
     ${imageGrid(p)}
     ${metaRow(p)}
     <div class="actions">
-      <button class="act ${p.liked ? 'liked' : ''}" data-like="${p.id}">
-        <span class="heart">${p.liked ? '❤️' : '🤍'}</span><span class="cnt">${p.likeCount || ''}</span>
-      </button>
-      <button class="act" data-open="${p.id}">💬 <span>${p.commentCount || ''}</span></button>
+      ${actButton('like', p)}
+      ${actButton('favorite', p)}
+      ${actButton('recommend', p)}
+      <button class="act" data-open="${p.id}" title="评论">💬<span class="cnt">${p.commentCount || ''}</span>评论</button>
     </div>
   </article>`;
 }
@@ -198,7 +242,12 @@ function postCard(p) {
 function renderFeed() {
   const box = $('#feed');
   if (!state.posts.length) {
-    box.innerHTML = `<div class="empty">还没有动态，点右下角 ➕ 发第一条吧</div>`;
+    const empty = {
+      favorites: ['⭐', '还没有收藏，看到喜欢的点个收藏吧'],
+      latest: ['🌸', '还没有动态，点右下角 ➕ 发第一条吧'],
+      recommend: ['🎀', '还没有动态，点右下角 ➕ 发第一条吧'],
+    }[state.tab];
+    box.innerHTML = `<div class="empty"><span class="big">${empty[0]}</span>${empty[1]}</div>`;
     return;
   }
   box.innerHTML = state.posts.map(postCard).join('');
@@ -225,25 +274,40 @@ $('#feed').addEventListener('click', async (e) => {
     openEditor(edit.dataset.edit);
     return;
   }
-  const like = e.target.closest('[data-like]');
-  if (like) {
-    if (!needLogin()) return;
-    const id = like.dataset.like;
-    const liked = like.classList.contains('liked');
-    const r = await api('/posts/' + id + '/like', { method: liked ? 'DELETE' : 'POST' });
-    like.classList.toggle('liked', r.liked);
-    like.querySelector('.heart').textContent = r.liked ? '❤️' : '🤍';
-    like.querySelector('.cnt').textContent = r.count || '';
-    const p = state.posts.find((x) => String(x.id) === id);
-    if (p) {
-      p.liked = r.liked;
-      p.likeCount = r.count;
-    }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    toggleAct(act.dataset.act, act.dataset.id, act);
     return;
   }
   const open = e.target.closest('[data-open]');
   if (open) openDetail(open.dataset.open);
 });
+
+/** 点赞 / 收藏 / 推荐：点了就切换，服务端幂等，返回最新状态和数量 */
+async function toggleAct(kind, id, el) {
+  if (!needLogin()) return;
+  const cfg = ACTS[kind];
+  const on = el.classList.contains('on');
+  try {
+    const r = await api('/posts/' + id + '/' + kind, { method: on ? 'DELETE' : 'POST' });
+    el.classList.toggle('on', r.on);
+    el.querySelector('.ico').textContent = r.on ? cfg.icons[1] : cfg.icons[0];
+    el.querySelector('.cnt').textContent = r.count || '';
+    toast(r.on ? cfg.toast[0] : cfg.toast[1]);
+    const p = state.posts.find((x) => String(x.id) === id);
+    if (p) {
+      p[cfg.on] = r.on;
+      p[cfg.count] = r.count;
+      // 在「我的收藏」里取消收藏，就直接从列表里划掉
+      if (kind === 'favorite' && !r.on && state.tab === 'favorites') {
+        state.posts = state.posts.filter((x) => String(x.id) !== id);
+        renderFeed();
+      }
+    }
+  } catch (e) {
+    toast(e.message);
+  }
+}
 
 $('#lightbox').addEventListener('click', () => $('#lightbox').classList.add('hidden'));
 
@@ -255,7 +319,6 @@ $('#loadMoreBtn').onclick = () => {
 /* ---------------- 详情与评论 ---------------- */
 
 async function openDetail(id) {
-  if (!state.token) state.openPostId = id;
   const [post, comments] = await Promise.all([
     api('/posts/' + id),
     api('/posts/' + id + '/comments').catch(() => []),
@@ -278,7 +341,7 @@ async function openDetail(id) {
       </div>`
       )
       .join('')}</div>
-    ${comments.length ? '' : '<p class="empty">还没有评论，来说两句</p>'}`;
+    ${comments.length ? '' : '<p class="empty"><span class="big">💬</span>还没有评论，来说两句</p>'}`;
   $('#detail').classList.remove('hidden');
 }
 
@@ -287,14 +350,24 @@ $('#detailBody').addEventListener('click', async (e) => {
   if (cd) {
     await api('/comments/' + cd.dataset.cdel, { method: 'DELETE' });
     openDetail(state.openPostId);
+    loadPosts(true);
     toast('评论已删除');
+    return;
+  }
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    await toggleAct(act.dataset.act, act.dataset.id, act);
+    openDetail(state.openPostId);
     return;
   }
   const edit = e.target.closest('[data-edit]');
   if (edit) {
     $('#detail').classList.add('hidden');
     openEditor(edit.dataset.edit);
+    return;
   }
+  const open = e.target.closest('[data-open]');
+  if (open) openDetail(open.dataset.open);
 });
 
 $('#commentSend').onclick = async () => {
@@ -302,10 +375,15 @@ $('#commentSend').onclick = async () => {
   const input = $('#commentInput');
   const content = input.value.trim();
   if (!content) return;
-  await api('/posts/' + state.openPostId + '/comments', { method: 'POST', json: { content } });
-  input.value = '';
-  await openDetail(state.openPostId);
-  loadPosts(true);
+  try {
+    await api('/posts/' + state.openPostId + '/comments', { method: 'POST', json: { content } });
+    input.value = '';
+    await openDetail(state.openPostId);
+    loadPosts(true);
+    toast('评论成功 💬');
+  } catch (e) {
+    toast(e.message);
+  }
 };
 
 /* ---------------- 发布 ---------------- */
@@ -328,8 +406,7 @@ function openComposer() {
 /** 打开「编辑」面板：只改文字 / 话题 / 定位，图片不动 */
 async function openEditor(id) {
   if (!needLogin()) return;
-  const post =
-    state.posts.find((p) => String(p.id) === String(id)) || (await api('/posts/' + id));
+  const post = state.posts.find((p) => String(p.id) === String(id)) || (await api('/posts/' + id));
   state.editingId = post.id;
   $('#postContent').value = post.content || '';
   $('#topicSel').value = post.topic || '';
@@ -466,25 +543,23 @@ $('#postSubmit').onclick = async () => {
 
 /* ---------------- 登录注册 ---------------- */
 
-const EMOJIS = ['🙂', '😎', '🐱', '🐶', '🍜', '🎮', '📚', '🌵', '🚀', '🎧', '🍀', '🔥'];
-
 function openAuth(tab) {
   if (!$('#emojiPick').childElementCount) {
     $('#emojiPick').innerHTML = EMOJIS.map((e) => `<button data-emoji="${e}">${e}</button>`).join('');
   }
-  switchTab(tab || 'login');
+  switchAuthTab(tab || 'login');
   $('#authModal').classList.remove('hidden');
 }
 
-function switchTab(tab) {
-  $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+function switchAuthTab(tab) {
+  $$('#authModal .tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
   $('#avatarRow').classList.toggle('hidden', tab !== 'register');
   $('#authTitle').textContent = tab === 'login' ? '登录' : '注册';
   $('#authSubmit').textContent = tab === 'login' ? '登录' : '注册并进入';
   $('#authModal').dataset.mode = tab;
 }
 
-$$('.tab').forEach((t) => (t.onclick = () => switchTab(t.dataset.tab)));
+$$('#authModal .tab').forEach((t) => (t.onclick = () => switchAuthTab(t.dataset.tab)));
 
 $('#emojiPick').addEventListener('click', (e) => {
   const b = e.target.closest('[data-emoji]');
@@ -497,7 +572,7 @@ $('#authSubmit').onclick = async () => {
     nickname: $('#authNickname').value.trim(),
     password: $('#authPassword').value,
   };
-  if (mode === 'register') body.avatar = $('#authAvatar').value.trim() || '🙂';
+  if (mode === 'register') body.avatar = $('#authAvatar').value.trim() || '🐱';
   $('#authError').textContent = '';
   try {
     const r = await api('/auth/' + mode, { method: 'POST', json: body });
@@ -511,6 +586,66 @@ $('#authSubmit').onclick = async () => {
     toast(mode === 'login' ? '欢迎回来 👋' : '注册成功，欢迎加入 🎉');
   } catch (e) {
     $('#authError').textContent = e.message;
+  }
+};
+
+/* ---------------- 个人资料（改昵称 / 头像） ---------------- */
+
+function openProfile() {
+  if (!needLogin()) return;
+  if (!$('#profileEmojiPick').childElementCount) {
+    $('#profileEmojiPick').innerHTML = EMOJIS.map(
+      (e) => `<button data-pemoji="${e}">${e}</button>`
+    ).join('');
+  }
+  const me = state.me || {};
+  $('#profileAvatar').textContent = me.avatar || '🙂';
+  $('#profileNickname').textContent = me.nickname || '—';
+  $('#profileName').value = me.nickname || '';
+  $('#profileAvatarInput').value = me.avatar || '';
+  $('#profileBio').value = me.bio || '';
+  $('#profileError').textContent = '';
+  $('#profileStats').textContent = '加载中…';
+  api('/me/stats')
+    .then((s) => {
+      $('#profileStats').textContent = `⭐ 收藏 ${s.favoriteCount} · 🌟 推荐 ${s.recommendCount}`;
+    })
+    .catch(() => {
+      $('#profileStats').textContent = '';
+    });
+  $('#profileModal').classList.remove('hidden');
+}
+
+$('#profileEmojiPick').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pemoji]');
+  if (b) {
+    $('#profileAvatarInput').value = b.dataset.pemoji;
+    $('#profileAvatar').textContent = b.dataset.pemoji;
+  }
+});
+
+$('#profileSubmit').onclick = async () => {
+  const btn = $('#profileSubmit');
+  btn.disabled = true;
+  $('#profileError').textContent = '';
+  try {
+    const updated = await api('/auth/profile', {
+      method: 'PATCH',
+      json: {
+        nickname: $('#profileName').value.trim(),
+        avatar: $('#profileAvatarInput').value.trim(),
+        bio: $('#profileBio').value.trim(),
+      },
+    });
+    state.me = Object.assign({}, state.me, updated);
+    $('#profileModal').classList.add('hidden');
+    renderMe();
+    await loadPosts(true); // 昵称改了，列表里的署名要跟着变
+    toast('资料已更新 🎀');
+  } catch (e) {
+    $('#profileError').textContent = e.message;
+  } finally {
+    btn.disabled = false;
   }
 };
 
@@ -552,11 +687,11 @@ document.addEventListener('click', (e) => {
 async function loadTopics() {
   try {
     const topics = await api('/posts/topics');
-    const all = ['推荐'].concat(topics);
-    $('#topics').innerHTML = all
+    $('#topics').innerHTML = ['全部']
+      .concat(topics)
       .map(
         (t) =>
-          `<button class="topic ${t === '推荐' && !state.topic ? 'active' : ''}" data-topic="${esc(t)}">${esc(t)}</button>`
+          `<button class="topic ${(t === '全部' && !state.topic) || t === state.topic ? 'active' : ''}" data-topic="${esc(t)}">${esc(t)}</button>`
       )
       .join('');
     $('#topicSel').innerHTML =
@@ -570,10 +705,26 @@ async function loadTopics() {
 $('#topics').addEventListener('click', (e) => {
   const t = e.target.closest('[data-topic]');
   if (!t) return;
-  const topic = t.dataset.topic === '推荐' ? '' : t.dataset.topic;
-  state.topic = topic;
+  state.topic = t.dataset.topic === '全部' ? '' : t.dataset.topic;
   $$('.topic').forEach((x) => x.classList.toggle('active', x === t));
   loadPosts(true);
+});
+
+function switchTab(tab) {
+  state.tab = tab;
+  $$('.feed-tab').forEach((x) => x.classList.toggle('active', x.dataset.tab === tab));
+  loadPosts(true);
+}
+
+$$('.feed-tab').forEach((b) => {
+  b.onclick = () => {
+    if (b.dataset.tab === 'favorites' && !state.token) {
+      toast('登录后才能看收藏哦 🎀');
+      openAuth('login');
+      return;
+    }
+    switchTab(b.dataset.tab);
+  };
 });
 
 /* ---------------- 启动 ---------------- */
@@ -581,9 +732,5 @@ $('#topics').addEventListener('click', (e) => {
 (async function boot() {
   await loadMe();
   await loadTopics();
-  try {
-    await loadPosts(true);
-  } catch (e) {
-    $('#feed').innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`;
-  }
+  await loadPosts(true);
 })();

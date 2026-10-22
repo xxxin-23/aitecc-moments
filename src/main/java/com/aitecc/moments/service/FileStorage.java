@@ -49,10 +49,14 @@ public class FileStorage {
         }
 
         try {
-            // 不仅信 Content-Type，还实际解码一遍，挡掉「改了后缀的文本文件」
-            BufferedImage image = ImageIO.read(file.getInputStream());
-            if (image == null) {
-                throw new BizException("文件不是有效图片：" + file.getOriginalFilename());
+            // 不仅信 Content-Type，还实际解码一遍，挡掉「改了后缀的文本文件」。
+            // 唯一的例外是 iPhone 默认的 heic/heif —— Java 自带解码器读不了，
+            // 但那确实是照片，不能因为解不开就把同学拦在门外，只能放行存盘。
+            if (!isHeic(ext)) {
+                BufferedImage image = ImageIO.read(file.getInputStream());
+                if (image == null) {
+                    throw new BizException("文件不是有效图片：" + file.getOriginalFilename());
+                }
             }
 
             Files.createDirectories(root);
@@ -65,6 +69,10 @@ public class FileStorage {
         } catch (IOException e) {
             throw new BizException("图片保存失败：" + e.getMessage());
         }
+    }
+
+    private static boolean isHeic(String ext) {
+        return ".heic".equals(ext) || ".heif".equals(ext);
     }
 
     /** ContentType 不可信时，用原始文件名后缀兜底。 */

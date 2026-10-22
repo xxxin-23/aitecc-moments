@@ -55,7 +55,20 @@ public class AuthService {
         users.save(user);
     }
 
+    /**
+     * 改个人资料。昵称 / 头像 / 简介都是「传了才改」，互不牵连。
+     *
+     * <p>昵称走和注册同一套规则（2~24 字），但查重要排除自己 ——
+     * 否则「只改个头像、昵称原样提交」会被自己撞名挡下来。
+     */
     public Auth.UserBrief updateProfile(User user, Auth.UpdateProfileRequest req) {
+        if (req.nickname() != null && !req.nickname().isBlank()) {
+            String nickname = normalizeNickname(req.nickname());
+            if (users.existsByNicknameAndIdNot(nickname, user.getId())) {
+                throw new BizException("这个昵称已经被占了，换一个吧");
+            }
+            user.setNickname(nickname);
+        }
         if (req.avatar() != null && !req.avatar().isBlank()) {
             user.setAvatar(req.avatar().strip().substring(0, Math.min(8, req.avatar().strip().length())));
         }

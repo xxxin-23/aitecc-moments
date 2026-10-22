@@ -39,11 +39,14 @@ public class PostController {
     public Feed.PageView<Feed.PostView> feed(
             @RequestParam(required = false) String topic,
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestHeader(value = "X-Auth-Token", required = false) String token) {
         User current = authService.resolve(token).orElse(null);
-        return postService.feed(topic, userId, page, size, current);
+        // 不传 sort 时按「推荐」排：新同学进来先看到大家公认好玩的内容
+        String safeSort = (sort == null || sort.isBlank()) ? "recommend" : sort.trim();
+        return postService.feed(topic, userId, page, size, current, safeSort);
     }
 
     @GetMapping("/topics")

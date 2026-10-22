@@ -30,6 +30,12 @@ public final class Feed {
         }
     }
 
+    /**
+     * 一条动态的完整视图。
+     *
+     * <p>{@code liked / favorited / recommended} 是「当前登录用户」的操作状态，
+     * 未登录一律 false —— 前端据此决定按钮是空心还是实心。
+     */
     public record PostView(
             Long id,
             Auth.UserBrief author,
@@ -40,10 +46,23 @@ public final class Feed {
             LocalDateTime createdAt,
             long likeCount,
             long commentCount,
+            long favoriteCount,
+            long recommendCount,
             boolean liked,
+            boolean favorited,
+            boolean recommended,
             boolean mine) {
 
-        public static PostView of(Post p, long likeCount, long commentCount, boolean liked, Long currentUserId) {
+        public static PostView of(
+                Post p,
+                long likeCount,
+                long commentCount,
+                long favoriteCount,
+                long recommendCount,
+                boolean liked,
+                boolean favorited,
+                boolean recommended,
+                Long currentUserId) {
             boolean mine = currentUserId != null && p.getAuthor().getId().equals(currentUserId);
             return new PostView(
                     p.getId(),
@@ -55,10 +74,17 @@ public final class Feed {
                     p.getCreatedAt(),
                     likeCount,
                     commentCount,
+                    favoriteCount,
+                    recommendCount,
                     liked,
+                    favorited,
+                    recommended,
                     mine);
         }
     }
+
+    /** 收藏 / 推荐这类开关型操作，返回最新状态，前端不用再拉一次详情。 */
+    public record ToggleView(boolean on, long count) {}
 
     public record CommentView(Long id, Auth.UserBrief author, String content, LocalDateTime createdAt, boolean mine) {
 

@@ -33,9 +33,11 @@
 
 ```bash
 mvn spring-boot:run          # 需要 JDK 17+
-python e2e_test.py           # 42 项端到端自测，改完必跑
-python seed.py               # 灌 4 条演示数据（可选）
+python e2e_test.py           # 44 项端到端自测，改完必跑
 ```
+
+> 自测脚本会造数据，建议起**临时实例**跑，别污染自己本地的库（做法见 README 的「自测脚本」一节）。
+> 平台里不放任何演示数据 —— 同学打开就是干净的首页。
 
 浏览器打开 <http://localhost:8080>。
 

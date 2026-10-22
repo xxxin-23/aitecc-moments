@@ -6,31 +6,49 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>民大朋友圈 · AITECC Moments</title>
+    <title>科技社陪着你走过青葱校园</title>
     <link rel="stylesheet" href="style.css" />
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎀</text></svg>"
     />
   </head>
   <body>
+    <!-- 背景装饰：飘着的蝴蝶结和小爱心 -->
+    <div class="deco" aria-hidden="true">
+      <span class="deco-item">🎀</span>
+      <span class="deco-item">💗</span>
+      <span class="deco-item">🌸</span>
+      <span class="deco-item">🎀</span>
+      <span class="deco-item">💕</span>
+      <span class="deco-item">🍓</span>
+      <span class="deco-item">🌸</span>
+      <span class="deco-item">💖</span>
+    </div>
+
     <header class="topbar">
       <div class="brand">
-        <span class="logo">🍃</span>
+        <span class="logo">🐱</span>
         <div class="brand-text">
-          <strong>民大朋友圈</strong>
-          <small>AITECC · 分享好吃好玩</small>
+          <strong>科技社陪着你走过青葱校园</strong>
+          <small>AITECC · 好吃好玩，一起分享</small>
         </div>
       </div>
       <div class="me" id="me"></div>
     </header>
+
+    <nav class="tabs-bar">
+      <button class="feed-tab active" data-tab="recommend">🌟 推荐</button>
+      <button class="feed-tab" data-tab="latest">🕊️ 最新</button>
+      <button class="feed-tab" data-tab="favorites">⭐ 我的收藏</button>
+    </nav>
 
     <nav class="topics" id="topics"></nav>
 
     <main id="feed" class="feed"></main>
 
     <div id="loadMore" class="load-more hidden">
-      <button id="loadMoreBtn">加载更多</button>
+      <button id="loadMoreBtn">再看看别的 🎀</button>
     </div>
 
     <button class="fab" id="fab" title="发一条">＋</button>
@@ -42,6 +60,7 @@
           <h3 id="authTitle">登录</h3>
           <button class="icon-btn" data-close="authModal">✕</button>
         </div>
+        <p class="hint">🎀 加入科技社小圈子，只需要一个昵称和密码，三秒钟就好</p>
         <div class="tabs">
           <button class="tab active" data-tab="login">登录</button>
           <button class="tab" data-tab="register">注册</button>
@@ -61,6 +80,38 @@
         </label>
         <p class="err" id="authError"></p>
         <button class="primary" id="authSubmit">登录</button>
+      </div>
+    </div>
+
+    <!-- 个人资料：改昵称 / 头像 -->
+    <div class="modal hidden" id="profileModal">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h3>我的资料</h3>
+          <button class="icon-btn" data-close="profileModal">✕</button>
+        </div>
+        <div class="profile-top">
+          <div class="avatar big" id="profileAvatar">🙂</div>
+          <div class="profile-sum">
+            <strong id="profileNickname">—</strong>
+            <div class="profile-stats" id="profileStats"></div>
+          </div>
+        </div>
+        <label class="field">
+          <span>昵称（改了之后，你以前发的动态也会显示新名字）</span>
+          <input id="profileName" maxlength="24" placeholder="2~24 个字符" />
+        </label>
+        <label class="field">
+          <span>头像 emoji（点下面的小图标直接选）</span>
+          <input id="profileAvatarInput" maxlength="4" placeholder="🙂" />
+          <div class="emoji-pick" id="profileEmojiPick"></div>
+        </label>
+        <label class="field">
+          <span>一句话简介（选填）</span>
+          <input id="profileBio" maxlength="60" placeholder="比如：爱吃螺蛳粉的后端选手" />
+        </label>
+        <p class="err" id="profileError"></p>
+        <button class="primary" id="profileSubmit">保存</button>
       </div>
     </div>
 
@@ -86,6 +137,7 @@
           <span class="loc-hint" id="locHint"></span>
         </div>
         <input type="file" id="fileInput" accept="image/*" multiple hidden />
+        <p class="hint">最多 9 张图，单张不超过 10MB；不发图也可以，写点什么就行 ✨</p>
         <p class="err" id="postError"></p>
         <button class="primary" id="postSubmit">发布</button>
       </div>

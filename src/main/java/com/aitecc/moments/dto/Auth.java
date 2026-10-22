@@ -16,8 +16,13 @@ public final class Auth {
 
     public record LoginRequest(@NotBlank String nickname, @NotBlank String password) {}
 
-    /** 头像允许任意 emoji；body 里带 bio 便于个人页展示一句话简介。 */
-    public record UpdateProfileRequest(String avatar, String bio) {}
+    /**
+     * 个人资料：昵称 / 头像 / 一句话简介都能改。
+     *
+     * <p>三个字段都是可选的 —— 传 null 表示「这项不改」，只有显式传了值才校验，
+     * 这样前端「只换个头像」也不会被昵称规则挡住。
+     */
+    public record UpdateProfileRequest(String nickname, String avatar, String bio) {}
 
     public record AuthResponse(String token, UserBrief user) {}
 

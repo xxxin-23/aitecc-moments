@@ -4,15 +4,17 @@ import com.aitecc.moments.dto.Feed;
 import com.aitecc.moments.model.Comment;
 import com.aitecc.moments.model.Like;
 import com.aitecc.moments.model.Post;
+import com.aitecc.moments.model.Reaction;
 import com.aitecc.moments.model.User;
 import com.aitecc.moments.repository.CommentRepository;
 import com.aitecc.moments.repository.LikeRepository;
 import com.aitecc.moments.repository.PostRepository;
+import com.aitecc.moments.repository.ReactionRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 评论与点赞。 */
+/** 评论、点赞、收藏、推荐 —— 同学之间的全部互动都在这里。 */
 @Service
 @Transactional
 public class SocialService {
@@ -20,11 +22,17 @@ public class SocialService {
     private final PostRepository posts;
     private final CommentRepository comments;
     private final LikeRepository likes;
+    private final ReactionRepository reactions;
 
-    public SocialService(PostRepository posts, CommentRepository comments, LikeRepository likes) {
+    public SocialService(
+            PostRepository posts,
+            CommentRepository comments,
+            LikeRepository likes,
+            ReactionRepository reactions) {
         this.posts = posts;
         this.comments = comments;
         this.likes = likes;
+        this.reactions = reactions;
     }
 
     public Feed.CommentView addComment(User author, Long postId, String rawContent) {
@@ -89,5 +97,36 @@ public class SocialService {
             unlike(user, postId);
         }
         return new ToggleResult(wantLike, likes.countByPostId(postId));
+    }
+
+    /**
+     * 收藏 / 推荐这类开关型互动，幂等：重复点「收藏」不会存两条，重复取消也不报错。
+     *
+     * <p>推荐票的权重比点赞高（见 {@code PostService#heat}），
+     * 所以「真心想安利给同学」和「随手点个赞」在推荐流里是分开算的。
+     */
+    public Feed.ToggleView toggleReaction(User user, Long postId, Reaction.Kind kind, boolean on) {
+        Post post = posts.findById(postId).orElseThrow(() -> BizException.notFound("动态不存在"));
+        if (kind == null) {
+            throw new BizException("不支持的互动类型");
+        }
+        if (on) {
+            if (reactions.findByPostIdAndUserIdAndKind(postId, user.getId(), kind).isEmpty()) {
+                Reaction reaction = new Reaction();
+                reaction.setPost(post);
+                reaction.setUser(user);
+                reaction.setKind(kind);
+                reactions.save(reaction);
+            }
+        } else {
+            reactions.deleteByPostIdAndUserIdAndKind(postId, user.getId(), kind);
+        }
+        return new Feed.ToggleView(on, reactions.countByPostIdAndKind(postId, kind));
+    }
+
+    /** 我收藏 / 推荐过的数量，个人页展示用。 */
+    @Transactional(readOnly = true)
+    public long countMyReactions(User user, Reaction.Kind kind) {
+        return reactions.countByUserIdAndKind(user.getId(), kind);
     }
 }

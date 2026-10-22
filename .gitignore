@@ -7,6 +7,10 @@ data/
 uploads/
 run.log
 
+# 自测脚本用的临时实例数据
+tmp-test-data/
+tmp-test-uploads/
+
 # IDE
 .idea/
 *.iml

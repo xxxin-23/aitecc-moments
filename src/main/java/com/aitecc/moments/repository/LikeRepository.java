@@ -16,4 +16,7 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     List<Like> findTop20ByPostIdOrderByCreatedAtAsc(Long postId);
 
     void deleteByPostIdAndUserId(Long postId, Long userId);
+
+    /** 删动态时一并清掉，否则外键约束会让删除失败 */
+    void deleteByPostId(Long postId);
 }

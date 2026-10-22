@@ -1,6 +1,8 @@
-# 🍃 民大朋友圈 · AITECC Moments
+# 🎀 科技社陪着你走过青葱校园 · AITECC Moments
 
-> 人工智能科技社内部版「朋友圈 / 小红书」：发图文动态、带定位打卡、评论点赞，把好吃好玩的地方分享给社团里的大家。
+> 人工智能科技社内部版「朋友圈 / 小红书」：**科技社陪着你走过青葱校园**。
+> 粉嫩 Hello Kitty 风格，发图文动态、带定位打卡，和同学互相**点赞 · 评论 · 收藏 · 推荐**，
+> 把好吃好玩的地方分享给社团里的大家。
 
 一个**零配置、开箱即跑**的 Spring Boot 单包应用 —— 不用装数据库、不用配 Nginx、前端也不用 npm 构建，
 `mvn spring-boot:run` 一条命令就能跑起来。
@@ -15,11 +17,21 @@
 | **编辑动态** | 自己发的可以随时改文字 / 话题 / 定位（图片不动，要换图就删了重发） |
 | **定位打卡** | 浏览器自动取经纬度 + 手写地点名；点👇位置直接跳高德地图看在哪 |
 | **话题分类** | 美食 / 探店 / 学习 / 运动 / 风景 / 吐槽 / 数码 / 其他，顶部横向标签过滤 |
-| **评论** | 详情页评论列表，作者可以删自己的评论 |
-| **点赞** | 幂等设计，重复调用不会重复计数；已点赞实时高亮 |
-| **图片上传** | jpg / png / gif / webp / heic，单张 ≤ 10MB，**会真的解码校验**，改后缀的文本文件会被拒 |
-| **轻量账号** | 昵称 + 密码 + emoji 头像，注册完直接进，不用二次登录 |
-| **移动端 UI** | 手机优先布局，桌面自动居中成手机宽度；底部安全区适配 iPhone |
+| **💬 评论** | 详情页评论列表，作者可以删自己的评论 |
+| **❤️ 点赞** | 幂等设计，重复调用不会重复计数；已点赞实时高亮 |
+| **⭐ 收藏** | 看到想慢慢看的点收藏，「我的收藏」里随时翻出来 |
+| **🌟 推荐** | 真心想安利给同学的就点推荐 —— 推荐票权重最高，会把它顶上「推荐」流 |
+| **🌟 推荐 / 🕊️ 最新 / ⭐ 我的收藏** | 三个信息流：按热度（点赞+评论+收藏+推荐，带时间衰减）、按时间、只看自己收藏的 |
+| **改昵称 / 头像** | 点右上角头像进「我的资料」，昵称、emoji 头像、一句话简介都能改，改完旧动态署名同步更新 |
+| **图片上传** | jpg / png / gif / webp / heic，单张 ≤ 10MB，**会真的解码校验**，改后缀的文本文件会被拒（iPhone 的 heic 直接放行） |
+| **轻量账号** | 昵称 + 密码 + emoji 头像，注册完直接进，不用二次登录、不用邀请码 |
+| **移动端 UI** | 手机优先布局，桌面自动居中成手机宽度；底部安全区适配 iPhone；Hello Kitty 粉嫩主题 |
+
+### 🌟 「推荐」流是怎么排的
+
+热度分 = `点赞×1 + 评论×2 + 收藏×2 + 推荐×3`，再除以「发布至今小时数 + 2」的 0.6 次方做时间衰减。
+也就是说：**刚发出来、又被大家真心推荐的内容排最前**，老内容会自然沉下去，不会永远是那几条。
+权重写在 `PostService` 顶部的常量里，想调随时改。
 
 ---
 
@@ -89,15 +101,27 @@ http://192.168.3.36:8080
 > 想长期挂社团名下，需要组织管理员（`xwms` / `isryanyhliu` / `kelly-624` / `LCY261`）
 > 在 Settings → Transfer ownership 接收 —— 个人账号无法自己完成转移。
 
-### 🧪 自测脚本 & 演示数据
+### 🧪 自测脚本（线上环境不含任何演示数据）
 
 ```bash
-python e2e_test.py     # 33 项端到端接口自测：注册登录/发图/评论/点赞/权限/删除
-python seed.py         # 灌 4 条示例动态（带图 + 定位 + 话题），页面上立刻有东西看
+python e2e_test.py     # 44 项端到端接口自测：注册登录/发图/评论/点赞/编辑/权限/删除
 ```
 
 `e2e_test.py` 里会顺带校验「伪造图片文件会被拒」「重复点赞不叠加」「删别人的内容报 403」
 这些容易回归的场景，改动代码后跑一遍心里有底。
+
+> **平台里没有任何预置的示例动态** —— 同学打开就是干净的首页，第一条内容由大家自己发。
+> 自测脚本会造数据，建议像下面这样**起一个临时实例**跑，不要污染正式库：
+>
+> ```bash
+> java -jar target/aitecc-moments.jar --server.port=8081 \
+>   --spring.datasource.url='jdbc:h2:file:./tmp-test-data/test;MODE=MySQL;DB_CLOSE_DELAY=-1' \
+>   --moments.upload-dir=./tmp-test-uploads/
+> python e2e_test.py http://127.0.0.1:8081
+> # 跑完删掉 tmp-test-data / tmp-test-uploads 两个目录即可
+> ```
+>
+> 万一以前跑过 `seed.py` 灌了演示数据，用 `python clean_demo.py` 可以一键清干净（含图片文件）。
 
 ### 打包部署
 
@@ -169,12 +193,12 @@ aitecc-moments/
 │   ├── MomentsApplication.java          # 启动类
 │   ├── config/WebConfig.java            # CORS + /uploads 静态资源映射
 │   ├── dto/{Auth,Feed}.java             # 请求/响应 record
-│   ├── model/                           # JPA 实体：User Post PostImage Comment Like
+│   ├── model/                           # JPA 实体：User Post PostImage Comment Like Reaction
 │   ├── repository/                      # Spring Data 接口
 │   ├── service/                         # 业务逻辑
-│   │   ├── AuthService.java             # 注册/登录/令牌
-│   │   ├── PostService.java             # 发布/信息流/删除
-│   │   ├── SocialService.java           # 评论/点赞（幂等）
+│   │   ├── AuthService.java             # 注册/登录/令牌/改资料
+│   │   ├── PostService.java             # 发布/信息流（推荐+最新+收藏）/编辑/删除
+│   │   ├── SocialService.java           # 评论/点赞/收藏/推荐（全部幂等）
 │   │   ├── FileStorage.java             # 图片落盘 + 类型校验
 │   │   ├── PasswordHasher.java          # PBKDF2 口令散列
 │   │   └── BizException.java            # 业务异常 → JSON 错误
@@ -197,8 +221,8 @@ aitecc-moments/
 | POST | `/api/auth/login` | 登录 | — |
 | GET | `/api/auth/me` | 当前登录者 | — |
 | POST | `/api/auth/logout` | 退出（服务端清令牌） | ✅ |
-| PATCH | `/api/auth/profile` | 改头像 / 简介 | ✅ |
-| GET | `/api/posts` | 信息流，`?page=&size=&topic=&userId=` | 可选 |
+| PATCH | `/api/auth/profile` | 改昵称 / 头像 / 简介（传哪个改哪个，昵称撞名会 400） | ✅ |
+| GET | `/api/posts` | 信息流，`?page=&size=&topic=&userId=&sort=recommend｜latest`（默认 recommend） | 可选 |
 | GET | `/api/posts/topics` | 话题列表 | — |
 | GET | `/api/posts/{id}` | 单条详情 | 可选 |
 | POST | `/api/posts` | 发布（multipart：`content` `topic` `locationName` `latitude` `longitude` `images[]`） | ✅ |
@@ -209,6 +233,12 @@ aitecc-moments/
 | DELETE | `/api/comments/{id}` | 删自己的评论 | ✅ |
 | POST | `/api/posts/{id}/like` | 点赞，返回 `{liked, count}` | ✅ |
 | DELETE | `/api/posts/{id}/like` | 取消点赞 | ✅ |
+| POST | `/api/posts/{id}/favorite` | 收藏，返回 `{on, count}` | ✅ |
+| DELETE | `/api/posts/{id}/favorite` | 取消收藏 | ✅ |
+| POST | `/api/posts/{id}/recommend` | 推荐给同学，返回 `{on, count}` | ✅ |
+| DELETE | `/api/posts/{id}/recommend` | 取消推荐 | ✅ |
+| GET | `/api/me/favorites` | 我的收藏列表，结构和信息流一致 | ✅ |
+| GET | `/api/me/stats` | 我收藏过 / 推荐过多少条 | ✅ |
 
 ---
 
