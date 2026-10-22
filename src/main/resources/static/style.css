@@ -1,17 +1,23 @@
-/* ===== 科技社陪着你走过青葱校园 · Hello Kitty 粉嫩主题 ===== */
+/* ===== 科技社陪着你走过青葱校园 · Hello Kitty 粉嫩主题 =====
+   配色照 Hello Kitty 官方色：蝴蝶结红 #EE334E / 招牌粉 #F5B0C4 / 小鼻子黄 #FCD133 / 背带蓝 #48A5E4
+   造型六要素：白脸、黑细轮廓、左耳红蝴蝶结、低位竖椭圆眼、黄色小鼻子、六根胡须（没有嘴） */
 :root {
-  --pink: #ff6fa5;
-  --pink-deep: #ff3d77;
-  --pink-2: #ffa6c9;
-  --pink-soft: #ffe3ee;
-  --pink-ghost: #fff5f9;
+  --red: #ee334e; /* 蝴蝶结的招牌红 */
+  --pink: #f5b0c4; /* 官方招牌粉 */
+  --pink-2: #f5b0c4;
+  --pink-deep: #d9264e; /* 红，用于强调文字 */
+  --pink-soft: #fde7ef;
+  --pink-ghost: #fff7fa;
+  --yellow: #fcd133; /* 小鼻子的黄 */
+  --blue: #48a5e4; /* 背带裤的蓝 */
+  --ink: #2b2b2b; /* 轮廓线，不用纯黑，柔一点 */
   --card: #ffffff;
   --text: #5b3a48;
-  --muted: #b58ea0;
-  --line: #ffdcec;
+  --muted: #b08395;
+  --line: #fbdde9;
   --radius: 20px;
-  --shadow: 0 8px 22px rgba(255, 122, 165, 0.16);
-  --grad: linear-gradient(135deg, #ff8ab4 0%, #ff5f97 55%, #ff87b7 100%);
+  --shadow: 0 8px 22px rgba(238, 51, 78, 0.12);
+  --grad: linear-gradient(135deg, #ffa0c6 0%, #f4709e 45%, #ee334e 100%);
 }
 
 * {
@@ -24,9 +30,9 @@ body {
   color: var(--text);
   font: 15px/1.65 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   background:
-    radial-gradient(1200px 600px at 10% -10%, #ffe6f2 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, #fff0d9 0%, transparent 55%),
-    linear-gradient(180deg, #fff7fb 0%, #ffeef6 100%);
+    radial-gradient(1200px 600px at 10% -10%, #ffe3ef 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #fff6df 0%, transparent 55%),
+    linear-gradient(180deg, #fff8fb 0%, #ffedf4 100%);
   min-height: 100vh;
 }
 
@@ -45,11 +51,31 @@ body {
   pointer-events: none;
   overflow: hidden;
 }
+/* 图标精灵：一整份 Kitty / 蝴蝶结 / 爱心的矢量图，页面里到处复用 */
+.sprite {
+  display: none;
+}
 .deco-item {
   position: absolute;
-  font-size: 26px;
-  opacity: 0.35;
+  width: 58px;
+  height: 54px;
+  opacity: 0.22;
   animation: float 9s ease-in-out infinite;
+}
+.deco-item.bow {
+  width: 36px;
+  height: 24px;
+  opacity: 0.3;
+}
+.deco-item.heart {
+  width: 26px;
+  height: 24px;
+  opacity: 0.28;
+}
+.deco-item.star {
+  width: 26px;
+  height: 24px;
+  opacity: 0.3;
 }
 .deco-item:nth-child(1) {
   left: 6%;
@@ -115,7 +141,20 @@ body {
   color: #fff;
   border-bottom: 3px solid #fff;
   border-radius: 0 0 22px 22px;
-  box-shadow: 0 6px 18px rgba(255, 92, 141, 0.28);
+  box-shadow: 0 6px 18px rgba(238, 51, 78, 0.28);
+}
+/* 顶栏叠一层白色小圆点，Hello Kitty 经典的波点感 */
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0 22px 22px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.32) 2.2px, transparent 2.6px);
+  background-size: 16px 16px;
+  pointer-events: none;
+}
+.topbar > * {
+  position: relative;
 }
 .brand {
   display: flex;
@@ -124,8 +163,21 @@ body {
   min-width: 0;
 }
 .logo {
-  font-size: 28px;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.15));
+  width: 42px;
+  height: 39px;
+  flex: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+}
+/* 顶栏里的小 Kitty 站在一枚白色圆牌上 */
+.logo-wrap {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2.5px var(--red);
+  flex: none;
 }
 .brand-text {
   min-width: 0;
@@ -266,13 +318,17 @@ body {
   padding: 14px 16px 8px;
   animation: rise 0.3s ease both;
 }
+/* 每张卡片右上角别一枚红色蝴蝶结 */
 .post::after {
-  content: "🎀";
+  content: "";
   position: absolute;
-  top: -10px;
-  right: 12px;
-  font-size: 15px;
-  opacity: 0.85;
+  top: -11px;
+  right: 10px;
+  width: 32px;
+  height: 21px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 26'%3E%3Cpath d='M20,13 Q6,1 4,7 Q4,17 20,13 Z' fill='%23ee334e' stroke='%232b2b2b' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M20,13 Q34,1 36,7 Q36,17 20,13 Z' fill='%23ee334e' stroke='%232b2b2b' stroke-width='2.2' stroke-linejoin='round'/%3E%3Ccircle cx='20' cy='13' r='4.6' fill='%23ee334e' stroke='%232b2b2b' stroke-width='2.2'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+  filter: drop-shadow(0 2px 3px rgba(238, 51, 78, 0.25));
 }
 @keyframes rise {
   from {
@@ -460,9 +516,21 @@ body {
   color: #fff;
   font-size: 30px;
   line-height: 1;
-  box-shadow: 0 10px 24px rgba(255, 92, 141, 0.45);
+  box-shadow: 0 10px 24px rgba(238, 51, 78, 0.45);
   cursor: pointer;
   z-index: 30;
+}
+/* 发布按钮上也别一枚小蝴蝶结 */
+.fab::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: -7px;
+  width: 28px;
+  height: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 26'%3E%3Cpath d='M20,13 Q6,1 4,7 Q4,17 20,13 Z' fill='%23ee334e' stroke='%23fff' stroke-width='2.6' stroke-linejoin='round'/%3E%3Cpath d='M20,13 Q34,1 36,7 Q36,17 20,13 Z' fill='%23ee334e' stroke='%23fff' stroke-width='2.6' stroke-linejoin='round'/%3E%3Ccircle cx='20' cy='13' r='4.8' fill='%23ee334e' stroke='%23fff' stroke-width='2.6'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
 }
 
 /* 别人发了新内容时的提示条 */
@@ -516,7 +584,7 @@ body {
   max-height: 88vh;
   overflow: auto;
   animation: up 0.24s ease both;
-  border-top: 4px solid var(--pink-2);
+  border-top: 4px solid var(--red);
 }
 @keyframes up {
   from {
@@ -818,4 +886,27 @@ textarea:focus {
   display: block;
   font-size: 34px;
   margin-bottom: 8px;
+}
+.empty .big svg {
+  width: 92px;
+  height: 84px;
+  opacity: 0.95;
+  animation: float 4.5s ease-in-out infinite;
+}
+.empty .big.small svg {
+  width: 58px;
+  height: 53px;
+}
+/* 加载 / 空状态里那只晃脑袋的小 Kitty */
+.empty .big.kitty-wave svg {
+  animation: kitty-wave 2.6s ease-in-out infinite;
+}
+@keyframes kitty-wave {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
 }

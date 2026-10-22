@@ -20,6 +20,9 @@ const state = {
   commentSig: '', // 当前详情页评论的 id 串，变了才重绘
 };
 
+/** 随时插一只小 Kitty / 一枚蝴蝶结（用的是 index.html 里的矢量精灵） */
+const KITTY = '<svg viewBox="0 0 120 112" aria-hidden="true"><use href="#i-kitty"/></svg>';
+
 /** 三类「开关型」互动：图标、字段名、按钮文案都收在一处，加新动作只改这里 */
 const ACTS = {
   like: { on: 'liked', count: 'likeCount', icons: ['🤍', '❤️'], label: '赞', toast: ['已点赞 ❤️', '取消点赞'] },
@@ -171,7 +174,7 @@ async function loadPosts(reset) {
       switchTab('recommend');
       return;
     }
-    $('#feed').innerHTML = `<div class="empty"><span class="big">🎀</span>加载失败：${esc(e.message)}</div>`;
+    $('#feed').innerHTML = `<div class="empty"><span class="big">${KITTY}</span>加载失败：${esc(e.message)}</div>`;
   }
 }
 
@@ -244,12 +247,12 @@ function postCard(p) {
 function renderFeed() {
   const box = $('#feed');
   if (!state.posts.length) {
-    const empty = {
-      favorites: ['⭐', '还没有收藏，看到喜欢的点个收藏吧'],
-      latest: ['🌸', '还没有动态，点右下角 ➕ 发第一条吧'],
-      recommend: ['🎀', '还没有动态，点右下角 ➕ 发第一条吧'],
+    const tip = {
+      favorites: '还没有收藏，看到喜欢的点个收藏吧 ⭐',
+      latest: '还没有动态，点右下角 ➕ 发第一条吧',
+      recommend: '还没有动态，点右下角 ➕ 发第一条吧',
     }[state.tab];
-    box.innerHTML = `<div class="empty"><span class="big">${empty[0]}</span>${empty[1]}</div>`;
+    box.innerHTML = `<div class="empty"><span class="big kitty-wave">${KITTY}</span>${tip}</div>`;
     return;
   }
   box.innerHTML = state.posts.map(postCard).join('');
@@ -337,7 +340,7 @@ async function openDetail(id) {
 function commentsHtml(comments) {
   const cs = comments || [];
   if (!cs.length) {
-    return '<p class="empty"><span class="big">💬</span>还没有评论，来说两句</p>';
+    return `<p class="empty"><span class="big small">${KITTY}</span>还没有评论，来说两句 💬</p>`;
   }
   return `<div class="comments">${cs
     .map(
