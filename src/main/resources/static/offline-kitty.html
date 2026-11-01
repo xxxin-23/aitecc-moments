@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>喵～网络走丢啦 · 科技社</title>
+<style>
+  :root{
+    --red:#ee334e; --pink:#f5b0c4; --pink-deep:#d9264e;
+    --pink-soft:#fde7ef; --pink-ghost:#fff7fa; --yellow:#fcd133;
+    --ink:#2b2b2b; --text:#5b3a48; --muted:#b08395; --line:#fbdde9;
+    --radius:20px; --grad:linear-gradient(135deg,#ffa0c6 0%,#f4709e 45%,#ee334e 100%);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--text);
+    background:radial-gradient(120% 80% at 50% -10%, #ffe3ef 0%, #fff7fa 55%, #ffffff 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100dvh; padding:24px; text-align:center;
+  }
+  .topbar{
+    position:fixed; top:0; left:0; right:0; height:54px;
+    background:var(--grad); border-bottom:3px solid #fff;
+    border-radius:0 0 22px 22px; box-shadow:0 6px 18px rgba(238,51,78,.28);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .topbar strong{color:#fff; font-size:15px; font-weight:600;}
+  .card{
+    background:#fff; border:1.5px solid var(--line); border-radius:var(--radius);
+    box-shadow:0 8px 22px rgba(238,51,78,.12);
+    padding:28px 26px 24px; max-width:360px; width:100%;
+  }
+  .kitty{width:104px;height:96px;margin:0 auto 6px;animation:kitty-wave 2.6s ease-in-out infinite;}
+  @keyframes kitty-wave{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+  h1{font-size:20px;margin:6px 0 4px;color:var(--pink-deep);}
+  p.tip{font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 18px;}
+  .retry{
+    border:none; background:var(--grad); color:#fff; font-size:15px; font-weight:600;
+    padding:11px 26px; border-radius:999px; cursor:pointer;
+    box-shadow:0 6px 16px rgba(238,51,78,.28);
+  }
+  .retry:active{transform:translateY(1px);}
+  .hints{margin-top:16px; font-size:12.5px; color:var(--muted); line-height:1.7;}
+  .hints b{color:var(--pink-deep);}
+  .sprite{position:absolute;width:0;height:0;overflow:hidden;}
+</style>
+</head>
+<body>
+  <div class="topbar"><strong>科技社陪着你走过青葱校园</strong></div>
+
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-kitty" viewBox="0 0 120 112">
+      <path d="M28,37 Q22,12 33,12 Q44,13 50,28 Z" fill="#f5b0c4" stroke="#2b2b2b" stroke-width="3" stroke-linejoin="round" />
+      <path d="M92,37 Q98,12 87,12 Q76,13 70,28 Z" fill="#f5b0c4" stroke="#2b2b2b" stroke-width="3" stroke-linejoin="round" />
+      <ellipse cx="60" cy="66" rx="44" ry="36" fill="#f5b0c4" stroke="#2b2b2b" stroke-width="3" />
+      <path d="M84,26 Q66,10 64,20 Q64,32 84,26 Z" fill="#ee334e" stroke="#2b2b2b" stroke-width="2.6" stroke-linejoin="round" />
+      <path d="M84,26 Q102,10 104,20 Q104,32 84,26 Z" fill="#ee334e" stroke="#2b2b2b" stroke-width="2.6" stroke-linejoin="round" />
+      <circle cx="84" cy="26" r="6" fill="#ee334e" stroke="#2b2b2b" stroke-width="2.6" />
+      <ellipse cx="44" cy="68" rx="4.2" ry="7" fill="#2b2b2b" />
+      <ellipse cx="76" cy="68" rx="4.2" ry="7" fill="#2b2b2b" />
+      <ellipse cx="60" cy="80" rx="5.2" ry="3.6" fill="#fcd133" stroke="#2b2b2b" stroke-width="1.8" />
+      <path d="M14,58 L1,53 M13,68 L0,66 M15,78 L2,81" fill="none" stroke="#2b2b2b" stroke-width="2.4" stroke-linecap="round" />
+      <path d="M106,58 L119,53 M107,68 L120,66 M105,78 L118,81" fill="none" stroke="#2b2b2b" stroke-width="2.4" stroke-linecap="round" />
+    </symbol>
+  </svg>
+
+  <div class="card">
+    <svg class="kitty" viewBox="0 0 120 112"><use href="#i-kitty" /></svg>
+    <h1>喵～网络走丢啦</h1>
+    <p class="tip">我是 Kitty，网络恢复后我再来帮你加载动态～<br>先喝点水，或者检查一下 Wi-Fi 吧 🎀</p>
+    <button class="retry" onclick="location.reload()">重试一下</button>
+    <div class="hints">
+      已缓存的内容仍可浏览 · 恢复网络后点「重试」<br>
+      <b>AITECC</b> · 好吃好玩，一起分享
+    </div>
+  </div>
+</body>
+</html>
