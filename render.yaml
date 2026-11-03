@@ -1,0 +1,14 @@
+# Render Blueprint：在 Render 里选「New +」→「Blueprint」，连接本仓库即可一键创建
+services:
+  - type: web
+    name: aitecc-moments
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # Spring 宽松绑定：MOMENTS_ALLOW_ANONYMOUS_READ -> moments.allow-anonymous-read
+      - key: MOMENTS_ALLOW_ANONYMOUS_READ
+        value: "true"
