@@ -848,4 +848,9 @@ setInterval(pollComments, POLL_COMMENT_MS);
   await loadMe();
   await loadTopics();
   await loadPosts(true);
+
+  // 断网 Kitty 提示页：注册 Service Worker（离线兜底，只拦导航请求）
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('SW 注册失败', e));
+  }
 })();
